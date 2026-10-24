@@ -53,6 +53,7 @@ export PULSE_SERVER="unix:/run/user/${UID_NUM}/pulse/native"
 export WINE_FORCE_PORTAL=1
 export WINEDEBUG="-all,fixme-all"
 export WINEPREFIX="$WINEPREFIX"
+export WINEDLLOVERRIDES="mscoree,mshtml="
 
 # Self-healing: Initialize prefix if new
 if [ ! -d "$WINEPREFIX/drive_c/windows" ] && [ -x "$(command -v "$WINEBOOT_BIN")" ]; then

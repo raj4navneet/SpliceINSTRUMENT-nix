@@ -38,6 +38,8 @@ rec {
       [HKEY_CURRENT_USER\Software\Wine\DllOverrides]
       "dxgi"="native"
       "d3d11"="native"
+      "mscoree"=""
+      "mshtml"=""
     '').outPath;
 
   combined = pkgs.linkFarm "registry-patches-combined" [
