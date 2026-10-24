@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<PROPERTIES>
+  <VALUE name="defaultScale" val="1.0"/>
+  <VALUE name="defaultVoiceLimit" val="256"/>
+  <VALUE name="defaultOpenGL" val="1"/>
+  <VALUE name="defaultShowInfo" val="1"/>
+  <VALUE name="defaultCollapsed" val="0"/>
+  <VALUE name="defaultShowKeyswitches" val="1"/>
+  <VALUE name="defaultUnloadAt0" val="0"/>
+  <VALUE name="defaultGainAsDecibels" val="0"/>
+  <VALUE name="defaultPreloadSize" val="12288"/>
+  <VALUE name="defaultBufferSize" val="65536"/>
+  <VALUE name="defaultGlobalControllers" val="1"/>
+  <VALUE name="defaultGlobalOdest" val="1"/>
+  <VALUE name="defaultShouldStreamNonRealtimeSynchronously" val="1"/>
+  <VALUE name="defaultDisableHostAutomation" val="1"/>
+  <VALUE name="defaultMultiArticTrigger" val="0"/>
+  <VALUE name="defaultOdestDragType" val="0"/>
+  <VALUE name="defaultIgnoreMissingSamples" val="1"/>
+  <VALUE name="defaultToggleKnobParamMenu" val="0"/>
+  <VALUE name="defaultPitchStretchQuality" val="Default"/>
+  <VALUE name="defaultPitchStretchVoiceLimit" val="32"/>
+  <VALUE name="defaultToggleMemoryMap" val="1"/>
+  <VALUE name="defaultMasterTune" val="0.0"/>
+  <VALUE name="defaultOutputCount" val="16"/>
+  <VALUE name="defaultExclusiveGroupMics" val="0"/>
+  <VALUE name="defaultEnableReverse" val="0"/>
+  <VALUE name="defaultMiddleCIsC4" val="1"/>
+  <VALUE name="defaultLazyTechniquePreload" val="0"/>
+  <VALUE name="defaultNumStreamCoreThreads" val="0"/>
+  <VALUE name="defaultWidth" val="1097"/>
+  <VALUE name="defaultHeight" val="735"/>
+  <VALUE name="userAnalyticsPreference" val="0"/>
+  <VALUE name="onboardingCompleted" val="1"/>
+  <VALUE name="audioSetup">
+    <DEVICESETUP deviceType="DirectSound" audioOutputDeviceName="Primary Sound Driver"
+                 audioInputDeviceName="" sampleRate="48000" preferredBufferSize="512"/>
+  </VALUE>
+</PROPERTIES>
