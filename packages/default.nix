@@ -4,11 +4,12 @@
   callPackage,
   makeWrapper,
   wineWowPackages,
-  wine ? wineWowPackages.staging,
+  winePackage ? wineWowPackages.staging,
   sqlite,
   ...
 }:
 let
+  wine = winePackage;
   registryPatches = (callPackage ./registry-patches.nix { }).combined;
   dependencies = callPackage ./dependencies.nix { };
   sources = callPackage ./sources.nix { };
