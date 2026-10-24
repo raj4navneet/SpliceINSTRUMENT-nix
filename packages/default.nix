@@ -3,7 +3,7 @@
   stdenv,
   callPackage,
   makeWrapper,
-  winePackage ? (builtins.storePath "/nix/store/jkqsx438nzk1rcl189rbak85s9w47v4v-affinity-wine"),
+  winePackage,
   sqlite,
   ...
 }:
@@ -48,29 +48,46 @@ stdenv.mkDerivation rec {
       fi
     done
 
-    # Detect binary names (supports both affinity-wine and standard wine)
-    WINE_EXEC="${wine}/bin/affinity-wine"
-    if [ ! -f "$WINE_EXEC" ]; then
-      WINE_EXEC="${wine}/bin/wine"
-    fi
+    # Detect binary names (supports wine-winrt, affinity-wine, and standard wine)
+    WINE_EXEC=""
+    for candidate in "${wine}/bin/wine-winrt" "${wine}/bin/affinity-wine" "${wine}/bin/wine"; do
+      if [ -x "$candidate" ] || [ -f "$candidate" ]; then
+        WINE_EXEC="$candidate"
+        break
+      fi
+    done
 
-    WINESERVER_EXEC="${wine}/bin/affinity-wineserver"
-    if [ ! -f "$WINESERVER_EXEC" ]; then
-      WINESERVER_EXEC="${wine}/bin/wineserver"
-    fi
+    WINESERVER_EXEC=""
+    for candidate in "${wine}/bin/wine-winrt-wineserver" "${wine}/bin/affinity-wineserver" "${wine}/bin/wineserver"; do
+      if [ -x "$candidate" ] || [ -f "$candidate" ]; then
+        WINESERVER_EXEC="$candidate"
+        break
+      fi
+    done
 
-    WINEBOOT_EXEC="${wine}/bin/affinity-wineboot"
-    if [ ! -f "$WINEBOOT_EXEC" ]; then
-      WINEBOOT_EXEC="${wine}/bin/wineboot"
-    fi
+    WINEBOOT_EXEC=""
+    for candidate in "${wine}/bin/wine-winrt-wineboot" "${wine}/bin/affinity-wineboot" "${wine}/bin/wineboot"; do
+      if [ -x "$candidate" ] || [ -f "$candidate" ]; then
+        WINEBOOT_EXEC="$candidate"
+        break
+      fi
+    done
 
     # Create binary wrapper with paths baked in
-    makeWrapper $out/share/splice-instruments/splice-instrument.sh $out/bin/splice-instrument \
-      --prefix PATH : ${lib.makeBinPath [ wine sqlite ]} \
-      --set SPLICE_SHARE_DIR "$out/share/splice-instruments" \
-      --set WINE_BIN "$WINE_EXEC" \
-      --set WINESERVER_BIN "$WINESERVER_EXEC" \
-      --set WINEBOOT_BIN "$WINEBOOT_EXEC"
+    WRAPPER_ARGS=(
+      $out/share/splice-instruments/splice-instrument.sh $out/bin/splice-instrument
+      --prefix PATH : ${lib.makeBinPath [ wine sqlite ]}
+      --set SPLICE_SHARE_DIR "$out/share/splice-instruments"
+      --set WINE_BIN "$WINE_EXEC"
+    )
+    if [ -n "$WINESERVER_EXEC" ]; then
+      WRAPPER_ARGS+=(--set WINESERVER_BIN "$WINESERVER_EXEC")
+    fi
+    if [ -n "$WINEBOOT_EXEC" ]; then
+      WRAPPER_ARGS+=(--set WINEBOOT_BIN "$WINEBOOT_EXEC")
+    fi
+
+    makeWrapper "''${WRAPPER_ARGS[@]}"
 
     runHook postInstall
   '';
