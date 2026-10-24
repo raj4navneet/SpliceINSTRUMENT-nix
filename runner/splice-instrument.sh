@@ -16,9 +16,17 @@ DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/splice-instruments"
 WINEPREFIX="${WINEPREFIX:-$DATA_DIR}"
 SHARE_DIR="${SPLICE_SHARE_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 
-# Fallback to general ~/.wine prefix if application was installed there
-if [ ! -d "$WINEPREFIX/drive_c/Program Files/Splice/Splice INSTRUMENT" ] && [ -d "$HOME/.wine/drive_c/Program Files/Splice/Splice INSTRUMENT" ]; then
-  WINEPREFIX="$HOME/.wine"
+# Ensure isolated prefix exists
+if [ ! -d "$WINEPREFIX/drive_c/Program Files/Splice/Splice INSTRUMENT" ]; then
+  if [ -d "$HOME/backups/wine/wine-working-prefix-20261024_2020" ]; then
+    echo "==> Bootstrapping isolated prefix at $WINEPREFIX from verified backup..."
+    mkdir -p "$WINEPREFIX"
+    cp -a "$HOME/backups/wine/wine-working-prefix-20261024_2020"/* "$WINEPREFIX/" 2>/dev/null || true
+  elif [ -d "$HOME/.wine/drive_c/Program Files/Splice/Splice INSTRUMENT" ]; then
+    echo "==> Bootstrapping isolated prefix at $WINEPREFIX from ~/.wine..."
+    mkdir -p "$WINEPREFIX"
+    cp -a "$HOME/.wine"/* "$WINEPREFIX/" 2>/dev/null || true
+  fi
 fi
 
 WINE_BIN="${WINE_BIN:-wine}"
