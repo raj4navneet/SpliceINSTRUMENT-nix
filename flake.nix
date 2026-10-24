@@ -22,7 +22,7 @@
           };
         };
         splice-instrument = pkgs.callPackage ./packages/default.nix {
-          winePackage = pkgs.wineWowPackages.staging;
+          winePackage = pkgs.wineWow64Packages.staging;
         };
       in
       {
@@ -42,10 +42,10 @@
     // {
       overlays.default = final: prev: {
         SpliceINSTRUMENT = final.callPackage ./packages/default.nix {
-          winePackage = final.wineWowPackages.staging;
+          winePackage = final.wineWow64Packages.staging;
         };
         splice-instrument = final.callPackage ./packages/default.nix {
-          winePackage = final.wineWowPackages.staging;
+          winePackage = final.wineWow64Packages.staging;
         };
       };
     };

@@ -3,8 +3,8 @@
   stdenv,
   callPackage,
   makeWrapper,
-  wineWowPackages,
-  winePackage ? wineWowPackages.staging,
+  wineWow64Packages,
+  winePackage ? wineWow64Packages.staging,
   sqlite,
   ...
 }:
