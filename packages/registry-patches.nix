@@ -28,7 +28,7 @@ rec {
       Windows Registry Editor Version 5.00
 
       [HKEY_CURRENT_USER\Software\Policies\Microsoft\Edge\WebView2\AdditionalBrowserArguments]
-      "*"="--no-sandbox --disable-gpu-sandbox --disable-gpu --disable-gpu-compositing --disable-direct-composition --disable-features=RendererCodeIntegrity"
+      "*"="--no-sandbox --disable-gpu-sandbox --disable-features=RendererCodeIntegrity"
     '').outPath;
 
   dxvk =

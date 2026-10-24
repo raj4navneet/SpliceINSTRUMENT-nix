@@ -3,8 +3,7 @@
   stdenv,
   callPackage,
   makeWrapper,
-  wineWow64Packages,
-  winePackage ? wineWow64Packages.staging,
+  winePackage ? (builtins.storePath "/nix/store/jkqsx438nzk1rcl189rbak85s9w47v4v-affinity-wine"),
   sqlite,
   ...
 }:
@@ -49,13 +48,29 @@ stdenv.mkDerivation rec {
       fi
     done
 
+    # Detect binary names (supports both affinity-wine and standard wine)
+    WINE_EXEC="${wine}/bin/affinity-wine"
+    if [ ! -f "$WINE_EXEC" ]; then
+      WINE_EXEC="${wine}/bin/wine"
+    fi
+
+    WINESERVER_EXEC="${wine}/bin/affinity-wineserver"
+    if [ ! -f "$WINESERVER_EXEC" ]; then
+      WINESERVER_EXEC="${wine}/bin/wineserver"
+    fi
+
+    WINEBOOT_EXEC="${wine}/bin/affinity-wineboot"
+    if [ ! -f "$WINEBOOT_EXEC" ]; then
+      WINEBOOT_EXEC="${wine}/bin/wineboot"
+    fi
+
     # Create binary wrapper with paths baked in
     makeWrapper $out/share/splice-instruments/splice-instrument.sh $out/bin/splice-instrument \
       --prefix PATH : ${lib.makeBinPath [ wine sqlite ]} \
       --set SPLICE_SHARE_DIR "$out/share/splice-instruments" \
-      --set WINE_BIN "${wine}/bin/wine" \
-      --set WINESERVER_BIN "${wine}/bin/wineserver" \
-      --set WINEBOOT_BIN "${wine}/bin/wineboot"
+      --set WINE_BIN "$WINE_EXEC" \
+      --set WINESERVER_BIN "$WINESERVER_EXEC" \
+      --set WINEBOOT_BIN "$WINEBOOT_EXEC"
 
     runHook postInstall
   '';

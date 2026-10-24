@@ -37,6 +37,10 @@ cleanup() {
   local exit_code=$?
   if [ -x "$(command -v "$WINESERVER_BIN")" ]; then
     WINEPREFIX="$WINEPREFIX" "$WINESERVER_BIN" -k 2>/dev/null || true
+  elif [ -n "${WINESERVER:-}" ] && [ -x "$WINESERVER" ]; then
+    WINEPREFIX="$WINEPREFIX" "$WINESERVER" -k 2>/dev/null || true
+  elif [ -x "$(command -v wineserver)" ]; then
+    WINEPREFIX="$WINEPREFIX" wineserver -k 2>/dev/null || true
   fi
   flock -u 200 2>/dev/null || true
   exit "$exit_code"
@@ -46,14 +50,13 @@ trap cleanup EXIT INT TERM
 
 # Export DXVK DirectComposition dummy swapchain & Chromium sandbox flags
 export DXVK_CONFIG="dxgi.enableDummyCompositionSwapchain=True"
-export WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--no-sandbox --disable-gpu-sandbox --disable-gpu --disable-gpu-compositing --disable-direct-composition --disable-features=RendererCodeIntegrity"
+export WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--no-sandbox --disable-gpu-sandbox --disable-features=RendererCodeIntegrity"
 
 # Audio & Desktop integration
 export PULSE_SERVER="unix:/run/user/${UID_NUM}/pulse/native"
 export WINE_FORCE_PORTAL=1
 export WINEDEBUG="-all,fixme-all"
 export WINEPREFIX="$WINEPREFIX"
-export WINEDLLOVERRIDES="d3d11,dxgi=n;mscoree,mshtml="
 
 # Self-healing: Initialize prefix if new
 if [ ! -d "$WINEPREFIX/drive_c/windows" ] && [ -x "$(command -v "$WINEBOOT_BIN")" ]; then

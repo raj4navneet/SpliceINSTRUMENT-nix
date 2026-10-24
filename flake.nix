@@ -21,9 +21,7 @@
             allowUnfree = true;
           };
         };
-        splice-instrument = pkgs.callPackage ./packages/default.nix {
-          winePackage = pkgs.wineWow64Packages.staging;
-        };
+        splice-instrument = pkgs.callPackage ./packages/default.nix { };
       in
       {
         packages = {
@@ -41,12 +39,8 @@
     )
     // {
       overlays.default = final: prev: {
-        SpliceINSTRUMENT = final.callPackage ./packages/default.nix {
-          winePackage = final.wineWow64Packages.staging;
-        };
-        splice-instrument = final.callPackage ./packages/default.nix {
-          winePackage = final.wineWow64Packages.staging;
-        };
+        SpliceINSTRUMENT = final.callPackage ./packages/default.nix { };
+        splice-instrument = final.callPackage ./packages/default.nix { };
       };
     };
 }
