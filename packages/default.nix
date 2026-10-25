@@ -7,6 +7,8 @@
   sqlite,
   util-linux,
   python3,
+  openssl,
+  libsecret,
   ...
 }:
 let
@@ -104,7 +106,7 @@ stdenv.mkDerivation rec {
 
     if [ -f $out/share/splice-instruments/splice-instrument-gui.sh ]; then
       makeWrapper $out/share/splice-instruments/splice-instrument-gui.sh $out/bin/splice-instrument-gui \
-        --prefix PATH : ${lib.makeBinPath [ python3 util-linux ]} \
+        --prefix PATH : ${lib.makeBinPath [ python3 util-linux openssl libsecret ]} \
         --set SPLICE_SHARE_DIR "$out/share/splice-instruments"
     fi
 
