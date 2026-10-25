@@ -6,6 +6,7 @@
   winePackage,
   sqlite,
   util-linux,
+  python3,
   ...
 }:
 let
@@ -32,14 +33,25 @@ stdenv.mkDerivation rec {
     cp $src/runner/splice-instrument.sh $out/share/splice-instruments/
     chmod +x $out/share/splice-instruments/splice-instrument.sh
 
+    # Install native frontend and web gui runner
+    if [ -d $src/frontend ]; then
+      cp -r $src/frontend $out/share/splice-instruments/
+      cp $src/runner/server.py $out/share/splice-instruments/
+      cp $src/runner/splice-instrument-gui.sh $out/share/splice-instruments/
+      chmod +x $out/share/splice-instruments/splice-instrument-gui.sh
+    fi
+
     # Link declarative registry patches
     ln -s ${registryPatches} $out/share/splice-instruments/registry-patches
 
     # Link external dependencies (WebView2 runtime installer)
     ln -s ${dependencies} $out/share/splice-instruments/dependencies
 
-    # Install desktop entry
+    # Install desktop entries
     cp $src/splice-instrument.desktop $out/share/applications/
+    if [ -f $src/splice-instrument-gui.desktop ]; then
+      cp $src/splice-instrument-gui.desktop $out/share/applications/
+    fi
 
     # Install icons
     for size in 16x16 32x32 48x48 256x256; do
@@ -89,6 +101,12 @@ stdenv.mkDerivation rec {
     fi
 
     makeWrapper "''${WRAPPER_ARGS[@]}"
+
+    if [ -f $out/share/splice-instruments/splice-instrument-gui.sh ]; then
+      makeWrapper $out/share/splice-instruments/splice-instrument-gui.sh $out/bin/splice-instrument-gui \
+        --prefix PATH : ${lib.makeBinPath [ python3 util-linux ]} \
+        --set SPLICE_SHARE_DIR "$out/share/splice-instruments"
+    fi
 
     runHook postInstall
   '';

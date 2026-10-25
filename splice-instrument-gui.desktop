@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Splice Instruments (Native Web GUI)
+Comment=Splice Instruments Virtual Synthesizer and Sampler (Decoupled Native Linux Web GUI)
+Exec=splice-instrument-gui
+Icon=splice-instrument
+Terminal=false
+Type=Application
+Categories=AudioVideo;Audio;Music;
+StartupNotify=true
+StartupWMClass=google-chrome

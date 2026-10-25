@@ -1,0 +1,1 @@
+import{C as e,Ot as t,f as n,p as r}from"./EditorStore-BeakynlE.js";var i=e(`EditorKeyboardStore`,()=>({didClickOriginateInKeyboard:t(!1),selectedNote:t(-1),setCurrentlySelectedNoteNumberInModel:e=>{r({event:n.instance.Editor.setCurrentlySelectedNoteNumber,noteNumber:e})}}),{persist:!0});export{i as t};

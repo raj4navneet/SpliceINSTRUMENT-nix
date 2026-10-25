@@ -1,0 +1,1 @@
+import{r as e}from"./event-logger-BuiORhLO.js";function t(t){if(!e.rr())return;let n=e.nn();n&&n.requestImmediateDataFlush(t)}export{t as requestImmediateDataFlush};

@@ -1,0 +1,1 @@
+import{r as e}from"./event-logger-BuiORhLO.js";import t from"./push-manager-factory-DI_c4Psd.js";function n(n,r){if(e.rr())return t.ra().unsubscribe(n,r)}export{n as unregisterPush};

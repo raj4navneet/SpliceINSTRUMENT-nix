@@ -1,0 +1,1 @@
+@keyframes indeterminate{0%{transform:translate(-100%)}50%{transform:translate(400%)}to{transform:translate(-100%)}}.animate-indeterminate{animation:3s infinite indeterminate}

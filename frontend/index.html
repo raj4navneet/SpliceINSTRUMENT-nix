@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="">
+<head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+    <title>INSTRUMENT</title>
+    <!-- Loading splash (INSTS-2492): sources live in splash/, inlined here at build time by the
+         inline-splash plugin in vite.config.js so they paint on the first frame. -->
+    <style>
+/* Loading splash (INSTS-2492). Inlined into index.html at build time (see the inline-splash
+   plugin in vite.config.js) so it paints on the FIRST frame, before the JS bundle loads. */
+
+html, body {
+    margin: 0;
+    height: 100%;
+    background: #161616;
+}
+
+#splash {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #161616;
+    opacity: 1;
+    transition: opacity 0.4s ease-out 0.2s;
+}
+
+#splash.splash--fade {
+    opacity: 0;
+}
+
+#splash .splash-logo {
+    width: 88px;
+    height: auto;
+    color: #f5f5f5;
+}
+
+#splash.splash--done .splash-logo {
+    animation: splash-logo-exit .4s ease-in forwards;
+}
+
+@keyframes splash-logo-exit {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-40px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #splash.splash--done .splash-logo {
+        animation: none;
+        opacity: 0;
+    }
+}
+</style>
+  <script type="module" crossorigin src="./assets/index-B5Pt9rGi.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime-QTnfLwEv.js">
+  <link rel="modulepreload" crossorigin href="./assets/EditorStore-BeakynlE.js">
+  <link rel="modulepreload" crossorigin href="./assets/ArrowRightIcon-CtQtiaZ0.js">
+  <link rel="modulepreload" crossorigin href="./assets/tslib.es6-DBiTlYkD.js">
+  <link rel="modulepreload" crossorigin href="./assets/apollo-QMq9BDRd.js">
+  <link rel="modulepreload" crossorigin href="./assets/text-clamp.esm-D5PMg7ML.js">
+  <link rel="modulepreload" crossorigin href="./assets/EditorKeyboardStore-C1UgNCYr.js">
+  <link rel="modulepreload" crossorigin href="./assets/SortViewDropdown--pn10qNk.js">
+  <link rel="modulepreload" crossorigin href="./assets/SearchBar-BDmqdYUZ.js">
+  <link rel="modulepreload" crossorigin href="./assets/useLibraryRefs-D9yjYd3C.js">
+  <link rel="modulepreload" crossorigin href="./assets/BrandPagesStore-DAnjTutc.js">
+  <link rel="modulepreload" crossorigin href="./assets/DiscoverOffline-DBdQSjTu.js">
+  <link rel="modulepreload" crossorigin href="./assets/useDeferredLibraries-BYpw0Uj1.js">
+  <link rel="modulepreload" crossorigin href="./assets/preload-helper-HclGiUj8.js">
+  <link rel="modulepreload" crossorigin href="./assets/middleware-Bd3YPjPc.js">
+  <link rel="modulepreload" crossorigin href="./assets/helpers-Dfaq6qKi.js">
+  <link rel="modulepreload" crossorigin href="./assets/callback-CFIOA0pT.js">
+  <link rel="modulepreload" crossorigin href="./assets/load-script-B5pn9q2J.js">
+  <link rel="modulepreload" crossorigin href="./assets/metric-helpers-CX8zBzk6.js">
+  <link rel="modulepreload" crossorigin href="./assets/gracefulDecodeURIComponent-Cjfhr3Sm.js">
+  <link rel="modulepreload" crossorigin href="./assets/event-logger-BuiORhLO.js">
+  <link rel="modulepreload" crossorigin href="./assets/change-user-C1iWkvS-.js">
+  <link rel="stylesheet" crossorigin href="./assets/ArrowRightIcon-2KfpRGoR.css">
+  <link rel="stylesheet" crossorigin href="./assets/SortViewDropdown-BvGQ1f9u.css">
+  <link rel="stylesheet" crossorigin href="./assets/useLibraryRefs-Dyxk_BsG.css">
+  <link rel="stylesheet" crossorigin href="./assets/DiscoverOffline-Co51Wvmw.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-D92PtweE.css">
+</head>
+<body>
+<!-- The splash is a SIBLING of #app: Vue's mount('#app') replaces #app's contents, so a splash
+     placed inside #app would be wiped. Must stay visually identical to the native splash logo
+     painted by Source/editor/SplashScreen.cpp — the webview takes over from it on reveal. -->
+<div id="splash" aria-hidden="true">
+    <svg class="splash-logo" viewBox="0 0 28 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M1.14 11.86c-1.32 1.31-1.32 3.45 0 4.76 1.31 1.32 3.45 1.32 4.76 0l5.24-5.24c1.32-1.31 1.32-3.45 0-4.76-1.32-1.31-3.45-1.31-4.77 0L1.14 11.86Z"
+              fill="currentColor"/>
+        <path d="M14 7.13a3.37 3.37 0 1 1 0-6.74 3.37 3.37 0 0 1 0 6.74Z" fill="currentColor"/>
+        <path d="M26.86 6.14c1.32-1.31 1.32-3.45 0-4.76-1.32-1.31-3.45-1.31-4.76 0l-5.24 5.24c-1.32 1.31-1.32 3.45 0 4.76 1.31 1.32 3.45 1.32 4.76 0l5.24-5.24Z"
+              fill="currentColor"/>
+        <path d="M14 10.87a3.37 3.37 0 1 1 0 6.74 3.37 3.37 0 0 1 0-6.74Z" fill="currentColor"/>
+    </svg>
+</div>
+<script>
+// Splash teardown. window.__splashDismiss is called from main.ts once the UI is mounted;
+// it is idempotent and safe to call before the splash exists.
+(function () {
+    let MIN_VISIBLE_MS = 450;
+    let dismissed = false;
+
+    // CSS animation clocks keep running while a page is hidden — a dismissal started then plays
+    // fast-forwarded or skips entirely once frames appear. The native webview is normally visible
+    // (parked out of sight, still rendering) for the whole load, but hosts can open the editor
+    // hidden or occluded, so everything below is anchored to the page actually being visible.
+    const runWhenVisible = (fn) => {
+        if (!document.hidden) {
+            fn();
+            return;
+        }
+
+        document.addEventListener('visibilitychange', function handler() {
+            if (document.hidden) return;
+            document.removeEventListener('visibilitychange', handler);
+            fn();
+        });
+    };
+
+    let visibleAt = null;
+    runWhenVisible(() => {
+        visibleAt = Date.now();
+    });
+
+    // Tell the native side the splash has actually been rendered (two rAFs = a frame has been
+    // produced). The webview loads visible but parked out of sight and is moved into place on
+    // this signal, so the reveal can never show an unpainted frame. The request is answered with
+    // a cancel; the catch swallows it (and the 404 in browser dev mode).
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            fetch('splash-painted').catch(function () {});
+        });
+    });
+
+    const playDismissal = (el) => {
+        let faded = false;
+        const startFade = () => {
+            if (faded) return;
+            faded = true;
+            el.classList.add('splash--fade');
+        };
+        let removed = false;
+        const remove = () => {
+            if (removed) return;
+            removed = true;
+            el.remove();
+        };
+
+        const logo = el.querySelector('.splash-logo');
+        if (logo) logo.addEventListener('animationend', startFade);
+        el.addEventListener('transitionend', remove);
+        el.classList.add('splash--done');
+
+        // Reduced motion disables the logo exit animation, so its animationend never fires
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) startFade();
+
+        // Safety net in case either animation end event is missed
+        setTimeout(remove, 3000);
+    };
+
+    window.__splashDismiss = () => {
+        if (dismissed) return;
+        dismissed = true;
+        runWhenVisible(() => {
+            let wait = Math.max(0, MIN_VISIBLE_MS - (Date.now() - (visibleAt !== null ? visibleAt : Date.now())));
+            setTimeout(function () {
+                let el = document.getElementById('splash');
+                if (!el) return;
+
+                // The dismiss request lands right as the app has mounted — often mid render
+                // jank, where a CSS animation started on a late frame gets picked up partway
+                // through its timeline and looks fast-forwarded. Two rAFs defer the start until
+                // the renderer is actually producing frames again: worst case the dismissal
+                // starts a little later, but it always plays at full speed.
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        playDismissal(el);
+                    });
+                });
+            }, wait);
+        });
+    };
+})();
+</script>
+<div id="app"></div>
+</body>
+</html>
