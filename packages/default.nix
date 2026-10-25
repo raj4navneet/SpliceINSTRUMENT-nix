@@ -5,6 +5,7 @@
   makeWrapper,
   winePackage,
   sqlite,
+  util-linux,
   ...
 }:
 let
@@ -76,7 +77,7 @@ stdenv.mkDerivation rec {
     # Create binary wrapper with paths baked in
     WRAPPER_ARGS=(
       $out/share/splice-instruments/splice-instrument.sh $out/bin/splice-instrument
-      --prefix PATH : ${lib.makeBinPath [ wine sqlite ]}
+      --prefix PATH : ${lib.makeBinPath [ wine sqlite util-linux ]}
       --set SPLICE_SHARE_DIR "$out/share/splice-instruments"
       --set WINE_BIN "$WINE_EXEC"
     )

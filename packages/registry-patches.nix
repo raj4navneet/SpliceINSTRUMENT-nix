@@ -36,8 +36,8 @@ rec {
       Windows Registry Editor Version 5.00
 
       [HKEY_CURRENT_USER\Software\Wine\DllOverrides]
-      "dxgi"="native"
-      "d3d11"="native"
+      "dxgi"="native,builtin"
+      "d3d11"="native,builtin"
       "mscoree"=""
       "mshtml"=""
     '').outPath;

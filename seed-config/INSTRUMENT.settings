@@ -9,7 +9,7 @@
   <VALUE name="defaultShowKeyswitches" val="1"/>
   <VALUE name="defaultUnloadAt0" val="0"/>
   <VALUE name="defaultGainAsDecibels" val="0"/>
-  <VALUE name="defaultPreloadSize" val="12288"/>
+  <VALUE name="defaultPreloadSize" val="32768"/>
   <VALUE name="defaultBufferSize" val="65536"/>
   <VALUE name="defaultGlobalControllers" val="1"/>
   <VALUE name="defaultGlobalOdest" val="1"/>
@@ -28,13 +28,13 @@
   <VALUE name="defaultEnableReverse" val="0"/>
   <VALUE name="defaultMiddleCIsC4" val="1"/>
   <VALUE name="defaultLazyTechniquePreload" val="0"/>
-  <VALUE name="defaultNumStreamCoreThreads" val="0"/>
-  <VALUE name="defaultWidth" val="1097"/>
-  <VALUE name="defaultHeight" val="735"/>
+  <VALUE name="defaultNumStreamCoreThreads" val="4"/>
+  <VALUE name="defaultWidth" val="1306"/>
+  <VALUE name="defaultHeight" val="874"/>
   <VALUE name="userAnalyticsPreference" val="0"/>
   <VALUE name="onboardingCompleted" val="1"/>
   <VALUE name="audioSetup">
-    <DEVICESETUP deviceType="DirectSound" audioOutputDeviceName="Primary Sound Driver"
-                 audioInputDeviceName="" sampleRate="48000" preferredBufferSize="512"/>
+    <DEVICESETUP deviceType="Windows Audio" audioOutputDeviceName=""
+                 audioInputDeviceName="" sampleRate="48000" preferredBufferSize="128"/>
   </VALUE>
 </PROPERTIES>
