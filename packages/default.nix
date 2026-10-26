@@ -38,7 +38,7 @@ stdenv.mkDerivation rec {
     # Install native frontend and web gui runner
     if [ -d $src/frontend ]; then
       cp -r $src/frontend $out/share/splice-instruments/
-      cp $src/runner/server.py $out/share/splice-instruments/
+      cp $src/runner/*.py $out/share/splice-instruments/
       cp $src/runner/splice-instrument-gui.sh $out/share/splice-instruments/
       chmod +x $out/share/splice-instruments/splice-instrument-gui.sh
     fi

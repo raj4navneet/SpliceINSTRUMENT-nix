@@ -16,11 +16,18 @@ import tempfile
 import hashlib
 import subprocess
 
+import urllib.parse
+
 sys.path.insert(0, os.path.dirname(__file__))
 try:
     import catalog
 except ImportError:
     catalog = None
+
+try:
+    import downloader
+except ImportError:
+    downloader = None
 
 PORT = int(os.environ.get("SPLICE_PORT", 38241))
 DIRECTORY = os.environ.get("SPLICE_FRONTEND_DIR", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend")))
@@ -138,6 +145,24 @@ class SpliceBridgeHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(encoded)
             return
 
+        # Download status endpoint
+        if self.path.startswith("/api/download/status"):
+            task_key = ""
+            if "?" in self.path:
+                query = self.path.split("?", 1)[1]
+                for param in query.split("&"):
+                    if param.startswith("task="):
+                        task_key = urllib.parse.unquote(param.split("=", 1)[1])
+            st = downloader.get_download_status(task_key) if downloader else {"status": "not_available"}
+            encoded = json.dumps(st).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(encoded)))
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(encoded)
+            return
+
         # Serve index.html with injected token, catalog, and nativeBridge
         if self.path == "/" or self.path == "/index.html" or self.path.startswith("/?"):
             index_path = os.path.join(DIRECTORY, "index.html")
@@ -155,6 +180,97 @@ window.__SPLICE_CATALOG_DATA__ = {cat_json};
 window.nativeBridge = {{
   postMessage: function(msg) {{
     console.log("[NativeBridge IPC Dispatch]", msg);
+    var parsed = msg;
+    if (typeof msg === "string") {{
+      try {{ parsed = JSON.parse(msg); }} catch(e) {{}}
+    }}
+
+    var eventName = parsed && (parsed.event || "");
+
+    // HTML5 Audio Preview Playback & Progress Synchronization
+    if (eventName === "playPreview" || eventName === "play") {{
+      var pUrl = parsed.url;
+      var pId = parsed.contentId || parsed.id || "";
+      if (pUrl) {{
+        if (!window.__splice_preview_audio) {{
+          window.__splice_preview_audio = new Audio();
+        }}
+        var aud = window.__splice_preview_audio;
+        aud.pause();
+        aud.src = pUrl;
+        if (parsed.startOffset) aud.currentTime = parsed.startOffset;
+        aud.play().catch(function(e) {{ console.warn("[HTML5 Audio Play Error]", e); }});
+
+        var updatePreviewTree = function(st, prog) {{
+          try {{
+            var rt = globalThis.getValueTreeRoot && globalThis.getValueTreeRoot("root");
+            var cp = rt && rt.getValueTree().getChildWithName("CurrentPreview");
+            if (cp) {{
+              cp.setProperty("state", st);
+              if (pId) cp.setProperty("uuid", pId);
+              if (prog !== undefined) cp.setProperty("progress", prog);
+            }}
+          }} catch(e) {{}}
+        }};
+
+        updatePreviewTree(0, 0.0); // 0 = Play
+
+        aud.ontimeupdate = function() {{
+          if (aud.duration) {{
+            updatePreviewTree(0, aud.currentTime / aud.duration);
+          }}
+        }};
+        aud.onended = function() {{
+          updatePreviewTree(1, 1.0); // 1 = Stop
+        }};
+      }}
+    }} else if (eventName === "stopPreview" || eventName === "stop") {{
+      if (window.__splice_preview_audio) {{
+        window.__splice_preview_audio.pause();
+        window.__splice_preview_audio.currentTime = 0;
+      }}
+      try {{
+        var rt = globalThis.getValueTreeRoot && globalThis.getValueTreeRoot("root");
+        var cp = rt && rt.getValueTree().getChildWithName("CurrentPreview");
+        if (cp) {{
+          cp.setProperty("state", 1); // 1 = Stop
+          cp.setProperty("progress", 0.0);
+        }}
+      }} catch(e) {{}}
+    }} else if (eventName === "pausePreview" || eventName === "pause") {{
+      if (window.__splice_preview_audio) {{
+        window.__splice_preview_audio.pause();
+      }}
+      try {{
+        var rt = globalThis.getValueTreeRoot && globalThis.getValueTreeRoot("root");
+        var cp = rt && rt.getValueTree().getChildWithName("CurrentPreview");
+        if (cp) cp.setProperty("state", 2); // 2 = Pause
+      }} catch(e) {{}}
+    }} else if (eventName === "resumePreview" || eventName === "resume") {{
+      if (window.__splice_preview_audio) {{
+        window.__splice_preview_audio.play().catch(function(){{}});
+      }}
+      try {{
+        var rt = globalThis.getValueTreeRoot && globalThis.getValueTreeRoot("root");
+        var cp = rt && rt.getValueTree().getChildWithName("CurrentPreview");
+        if (cp) cp.setProperty("state", 0); // 0 = Play
+      }} catch(e) {{}}
+    }}
+
+    // Load Preset Bridge Synchronization
+    if (eventName === "loadPreset" || eventName === "loadPresetUuid") {{
+      try {{
+        var rt = globalThis.getValueTreeRoot && globalThis.getValueTreeRoot("root");
+        var curPre = rt && rt.getValueTree().getChildWithName("CurrentPreset");
+        if (curPre) {{
+          if (parsed.familyName || parsed.family) curPre.setProperty("family", parsed.familyName || parsed.family);
+          if (parsed.uniqueName || parsed.name) curPre.setProperty("name", parsed.uniqueName || parsed.name);
+          if (parsed.displayName) curPre.setProperty("displayName", parsed.displayName);
+        }}
+      }} catch(e) {{}}
+    }}
+
+    // Server IPC Notification & Download Polling
     try {{
       fetch("/api/ipc", {{
         method: "POST",
@@ -162,6 +278,51 @@ window.nativeBridge = {{
         body: typeof msg === "string" ? msg : JSON.stringify(msg)
       }}).then(function(r) {{ return r.json(); }}).then(function(data) {{
         console.log("[NativeBridge Response]", data);
+        if (data.soundContentId && data.libraryContentId && data.installState) {{
+          if (window.__SPLICE_SET_PRESET_INSTALL_STATE__) {{
+            window.__SPLICE_SET_PRESET_INSTALL_STATE__(data.soundContentId, data.libraryContentId, data.installState);
+          }}
+          if (data.installState === 2) {{
+            var taskKey = data.libraryContentId + ":" + data.soundContentId;
+            var pollCount = 0;
+            var pollTimer = setInterval(function() {{
+              pollCount++;
+              if (pollCount > 300) {{ clearInterval(pollTimer); return; }}
+              fetch("/api/download/status?task=" + encodeURIComponent(taskKey))
+                .then(function(res) {{ return res.json(); }})
+                .then(function(st) {{
+                  if (st.status === "completed") {{
+                    clearInterval(pollTimer);
+                    if (window.__SPLICE_SET_PRESET_INSTALL_STATE__) {{
+                      window.__SPLICE_SET_PRESET_INSTALL_STATE__(data.soundContentId, data.libraryContentId, 3);
+                    }}
+                  }} else if (st.status === "failed") {{
+                    clearInterval(pollTimer);
+                    if (window.__SPLICE_SET_PRESET_INSTALL_STATE__) {{
+                      window.__SPLICE_SET_PRESET_INSTALL_STATE__(data.soundContentId, data.libraryContentId, 4);
+                    }}
+                  }}
+                }}).catch(function() {{}});
+            }}, 1000);
+          }}
+        }} else if (data.libraryContentId && data.event && data.event.indexOf("downloadPack") !== -1) {{
+          var taskKey = data.libraryContentId + ":all";
+          var pollCount = 0;
+          var pollTimer = setInterval(function() {{
+            pollCount++;
+            if (pollCount > 600) {{ clearInterval(pollTimer); return; }}
+            fetch("/api/download/status?task=" + encodeURIComponent(taskKey))
+              .then(function(res) {{ return res.json(); }})
+              .then(function(st) {{
+                if (st.status === "completed") {{
+                  clearInterval(pollTimer);
+                  location.reload();
+                }} else if (st.status === "failed") {{
+                  clearInterval(pollTimer);
+                }}
+              }}).catch(function() {{}});
+          }}, 1000);
+        }}
       }}).catch(function(err) {{
         console.error("[NativeBridge Error]", err);
       }});
@@ -209,6 +370,45 @@ window.nativeBridge = {{
             response_data = {"status": "ok", "event": event, "handled": True}
             if "download" in str(event).lower():
                 response_data["message"] = f"Download request for {event} accepted."
+
+            # Handle downloadPreset
+            if event == "downloadPreset" or "downloadPreset" in str(event):
+                sound_id = data.get("soundContentId")
+                lib_id = data.get("libraryContentId")
+                if sound_id and lib_id and downloader:
+                    tok = get_splice_token()
+                    downloader.start_download_async(sound_id, lib_id, token=tok)
+                    response_data = {
+                        "status": "started",
+                        "event": event,
+                        "soundContentId": sound_id,
+                        "libraryContentId": lib_id,
+                        "installState": 2, # Downloading
+                        "message": f"Download initiated for {sound_id}"
+                    }
+
+            # Handle downloadPack
+            if event == "downloadPack" or "downloadPack" in str(event):
+                lib_id = data.get("libraryContentId") or data.get("packId") or data.get("id")
+                if lib_id and downloader:
+                    tok = get_splice_token()
+                    downloader.start_pack_download_async(lib_id, token=tok)
+                    response_data = {
+                        "status": "started",
+                        "event": event,
+                        "libraryContentId": lib_id,
+                        "installState": 2, # Downloading
+                        "message": f"Pack download initiated for {lib_id}"
+                    }
+
+            # Handle loadPreset
+            if "loadpreset" in str(event).lower():
+                response_data = {
+                    "status": "ok",
+                    "event": event,
+                    "loaded": True,
+                    "preset": data
+                }
 
             encoded = json.dumps(response_data).encode("utf-8")
             self.send_response(200)
