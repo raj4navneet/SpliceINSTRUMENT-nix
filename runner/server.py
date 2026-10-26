@@ -16,6 +16,12 @@ import tempfile
 import hashlib
 import subprocess
 
+sys.path.insert(0, os.path.dirname(__file__))
+try:
+    import catalog
+except ImportError:
+    catalog = None
+
 PORT = int(os.environ.get("SPLICE_PORT", 38241))
 DIRECTORY = os.environ.get("SPLICE_FRONTEND_DIR", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend")))
 CONFIG_DIR = os.path.expanduser("~/.config/splice-instruments")
@@ -120,7 +126,19 @@ class SpliceBridgeHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(resp).encode())
             return
 
-        # Serve index.html with injected token and nativeBridge
+        # Live Catalog API
+        if self.path == "/api/catalog":
+            cat_data = catalog.get_catalog() if catalog else []
+            encoded = json.dumps(cat_data).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(encoded)))
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(encoded)
+            return
+
+        # Serve index.html with injected token, catalog, and nativeBridge
         if self.path == "/" or self.path == "/index.html" or self.path.startswith("/?"):
             index_path = os.path.join(DIRECTORY, "index.html")
             if os.path.isfile(index_path):
@@ -128,9 +146,12 @@ class SpliceBridgeHandler(http.server.SimpleHTTPRequestHandler):
                     content = f.read()
 
                 token = get_splice_token()
+                cat_data = catalog.get_catalog() if catalog else []
+                cat_json = json.dumps(cat_data)
                 bridge_script = f"""
 <script>
 window.__SPLICE_AUTO_TOKEN__ = "{token}";
+window.__SPLICE_CATALOG_DATA__ = {cat_json};
 window.nativeBridge = {{
   postMessage: function(msg) {{
     console.log("[NativeBridge IPC Dispatch]", msg);
