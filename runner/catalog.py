@@ -51,31 +51,84 @@ def fetch_json(url):
 def sync_catalog(max_libraries=50):
     """Fetches libraries and asset metadata from Splice Cloud."""
     os.makedirs(CACHE_DIR, exist_ok=True)
-    sys.stderr.write(f"[Catalog] Querying Splice API for {max_libraries} libraries...\n")
+    sys.stderr.write(f"[Catalog] Querying Splice API for libraries...\n")
 
+    installed_libs, installed_presets = get_installed_state()
+    items = []
+    seen_cids = set()
+
+    # 0. Always include locally installed libraries first
+    if installed_libs:
+        try:
+            ids_str = ",".join(installed_libs)
+            inst_res = fetch_json(f"https://instrument-api.splice.com/api/v2/content/content-items?ids={ids_str}")
+            for it in inst_res.get("items", []):
+                cid = it.get("content_id")
+                if cid and cid not in seen_cids:
+                    seen_cids.add(cid)
+                    items.append(it)
+            sys.stderr.write(f"[Catalog] Loaded {len(items)} locally installed libraries from properties.\n")
+        except Exception as e:
+            sys.stderr.write(f"[Catalog] Error loading installed libraries: {e}\n")
+
+    # 1. Fetch free libraries
     try:
-        search_res = fetch_json(f"https://instrument-api.splice.com/api/v2/content/content-items/search?type=library&per_page={max_libraries}&page=1")
+        free_res = fetch_json(f"https://instrument-api.splice.com/api/v2/content/content-items/search?type=library&filter%5Bfree%5D=1&per_page=50&page=1")
+        for it in free_res.get("items", []):
+            cid = it.get("content_id")
+            if cid and cid not in seen_cids:
+                seen_cids.add(cid)
+                items.append(it)
     except Exception as e:
-        sys.stderr.write(f"[Catalog] Error querying search: {e}\n")
-        return []
+        sys.stderr.write(f"[Catalog] Error querying free libraries: {e}\n")
 
-    items = search_res.get("items", [])
+    # 2. Fetch general catalog libraries
+    try:
+        search_res = fetch_json(f"https://instrument-api.splice.com/api/v2/content/content-items/search?type=library&per_page=30&page=1")
+        for it in search_res.get("items", []):
+            cid = it.get("content_id")
+            if cid and cid not in seen_cids:
+                seen_cids.add(cid)
+                items.append(it)
+    except Exception as e:
+        sys.stderr.write(f"[Catalog] Error querying general search: {e}\n")
+
     if not items:
         sys.stderr.write("[Catalog] No library items returned.\n")
         return []
 
-    item_ids = []
+    # 3. Collect sound IDs from all libraries
     sound_ids_all = []
+    for it in items:
+        for sid in it.get("sound_ids", []):
+            if sid not in sound_ids_all:
+                sound_ids_all.append(sid)
+
+    # 4. Resolve sound items first
+    sound_items = {}
+    for i in range(0, len(sound_ids_all), 50):
+        chunk = sound_ids_all[i:i+50]
+        try:
+            res = fetch_json("https://instrument-api.splice.com/api/v2/content/content-items?ids=" + ",".join(chunk))
+            for it in res.get("items", []):
+                sound_items[it["content_id"]] = it
+        except Exception as e:
+            sys.stderr.write(f"[Catalog] Error resolving sounds chunk: {e}\n")
+
+    # 5. Collect all media IDs from both libraries and resolved sounds
+    item_ids = []
     for it in items:
         for k in ["square_instrument_image_id", "image_id", "audio_demo_id"]:
             val = it.get(k)
             if val and val not in item_ids:
                 item_ids.append(val)
-        for sid in it.get("sound_ids", []):
-            if sid not in sound_ids_all:
-                sound_ids_all.append(sid)
 
-    # 1. Resolve media items
+    for s_obj in sound_items.values():
+        val = s_obj.get("audio_demo_id")
+        if val and val not in item_ids:
+            item_ids.append(val)
+
+    # 6. Resolve media items
     media_items = {}
     for i in range(0, len(item_ids), 50):
         chunk = item_ids[i:i+50]
@@ -86,21 +139,7 @@ def sync_catalog(max_libraries=50):
         except Exception as e:
             sys.stderr.write(f"[Catalog] Error resolving media chunk: {e}\n")
 
-    # 2. Resolve sound items
-    sound_items = {}
-    for i in range(0, len(sound_ids_all), 50):
-        chunk = sound_ids_all[i:i+50]
-        try:
-            res = fetch_json("https://instrument-api.splice.com/api/v2/content/content-items?ids=" + ",".join(chunk))
-            for it in res.get("items", []):
-                sound_items[it["content_id"]] = it
-                val = it.get("audio_demo_id")
-                if val and val not in media_items and val not in item_ids:
-                    item_ids.append(val)
-        except Exception as e:
-            sys.stderr.write(f"[Catalog] Error resolving sounds chunk: {e}\n")
-
-    # 3. Resolve direct assets (images / audio files)
+    # 7. Resolve direct assets (images / audio demo files)
     asset_ids = []
     for it in media_items.values():
         aid = it.get("image_id") or it.get("source_id")
@@ -121,7 +160,9 @@ def sync_catalog(max_libraries=50):
         except Exception as e:
             sys.stderr.write(f"[Catalog] Error resolving assets chunk: {e}\n")
 
-    # 4. Build library models
+    DEFAULT_DEMO_URL = "https://assets.ctfassets.net/g7eq1prqo1vw/1rO6VIIIpePmcdhZpnSlKv/b5e4168b16da5d985422614de28e9468/LW_ambient_guitars_demo_v2limit_rx.mp3"
+
+    # 8. Build library models
     catalog = []
     for it in items:
         cid = it.get("content_id")
@@ -129,19 +170,19 @@ def sync_catalog(max_libraries=50):
         img_url = asset_urls.get(img_item.get("image_id") or img_item.get("source_id"), "")
 
         demo_item = media_items.get(it.get("audio_demo_id"), {})
-        demo_url = asset_urls.get(demo_item.get("source_id"), "")
+        demo_url = asset_urls.get(demo_item.get("source_id"), "") or DEFAULT_DEMO_URL
 
         sounds = []
         for sid in it.get("sound_ids", []):
             s_obj = sound_items.get(sid, {})
             s_demo_item = media_items.get(s_obj.get("audio_demo_id"), {})
-            s_demo_url = asset_urls.get(s_demo_item.get("source_id"), demo_url)
+            s_demo_url = asset_urls.get(s_demo_item.get("source_id"), "") or demo_url or DEFAULT_DEMO_URL
             sounds.append({
                 "contentId": sid,
                 "name": s_obj.get("name", "Preset"),
                 "uniqueName": s_obj.get("internal_name") or s_obj.get("name", "Preset"),
                 "audioDemoUrl": s_demo_url,
-                "installState": 4, # default NotDownloaded, updated in get_catalog
+                "installState": 3 if sid in installed_presets else 4,
                 "isAccessible": True
             })
 
@@ -164,7 +205,7 @@ def sync_catalog(max_libraries=50):
             "primaryColourHex": it.get("primary_color", {}).get("hex", "#444444") if isinstance(it.get("primary_color"), dict) else "#444444",
             "secondaryColourHex": it.get("secondary_color", {}).get("hex", "#666666") if isinstance(it.get("secondary_color"), dict) else "#666666",
             "brand": it.get("brand", "Spitfire Audio"),
-            "audioDemos": [{"contentId": "1", "url": demo_url}] if demo_url else [],
+            "audioDemos": [{"contentId": "1", "url": demo_url}],
             "sounds": sounds,
             "labels": []
         })
@@ -176,6 +217,8 @@ def sync_catalog(max_libraries=50):
         sys.stderr.write(f"[Catalog] Saved {len(catalog)} libraries to cache {CACHE_FILE}\n")
     except Exception as e:
         sys.stderr.write(f"[Catalog] Warning: Failed to write cache: {e}\n")
+
+    return catalog
 
     return catalog
 

@@ -37,6 +37,17 @@ IPC_LOG_FILE = os.path.expanduser("~/.local/share/splice-instruments/ipc.log")
 
 def get_splice_token():
     """Extract or load active Splice authentication token."""
+    # 0. Check Auth0 native token in Wine prefix cache
+    wine_token_file = os.path.expanduser("~/.local/share/splice-instruments/drive_c/users/navigator/AppData/Roaming/com.splice.INSTRUMENT/cache/spl_a0_at")
+    if os.path.isfile(wine_token_file):
+        try:
+            with open(wine_token_file, "r") as f:
+                token = f.read().strip()
+                if token:
+                    return token
+        except Exception as e:
+            sys.stderr.write(f"[Server] Error reading wine token: {e}\n")
+
     # 1. Check cached token file
     if os.path.isfile(TOKEN_FILE):
         try:
@@ -257,6 +268,85 @@ window.nativeBridge = {{
       }} catch(e) {{}}
     }}
 
+    // WebAudio Polyphonic Synthesizer for Virtual Keyboard
+    if (eventName === "triggerKey" || (parsed && parsed.midiNote !== undefined)) {{
+      var note = parsed.midiNote !== undefined ? parsed.midiNote : parsed.note;
+      var isPress = parsed.press === true || parsed.pressed === true || parsed.isPressed === true;
+      if (note !== undefined) {{
+        try {{
+          if (!window.__splice_audio_ctx) {{
+            var AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) {{
+              window.__splice_audio_ctx = new AudioCtx();
+            }}
+          }}
+          var ctx = window.__splice_audio_ctx;
+          if (ctx) {{
+            if (ctx.state === "suspended") {{
+              ctx.resume().catch(function(){{}});
+            }}
+            window.__splice_voices = window.__splice_voices || {{}};
+            if (isPress) {{
+              // Note On
+              if (window.__splice_voices[note]) {{
+                try {{
+                  window.__splice_voices[note].gain.gain.cancelScheduledValues(ctx.currentTime);
+                  window.__splice_voices[note].osc1.stop();
+                  window.__splice_voices[note].osc2.stop();
+                }} catch(e) {{}}
+              }}
+              var freq = 440 * Math.pow(2, (note - 69) / 12);
+              var vel = parsed.velocity !== undefined ? (parsed.velocity / 127) : 0.8;
+              var gainNode = ctx.createGain();
+              gainNode.gain.setValueAtTime(0.0001, ctx.currentTime);
+              gainNode.gain.linearRampToValueAtTime(vel * 0.35, ctx.currentTime + 0.015);
+              gainNode.gain.exponentialRampToValueAtTime(vel * 0.2, ctx.currentTime + 0.25);
+
+              var filter = ctx.createBiquadFilter();
+              filter.type = "lowpass";
+              filter.frequency.setValueAtTime(Math.min(freq * 3.5, 5500), ctx.currentTime);
+
+              var osc1 = ctx.createOscillator();
+              osc1.type = "sawtooth";
+              osc1.frequency.setValueAtTime(freq, ctx.currentTime);
+
+              var osc2 = ctx.createOscillator();
+              osc2.type = "triangle";
+              osc2.frequency.setValueAtTime(freq * 1.002, ctx.currentTime);
+
+              osc1.connect(filter);
+              osc2.connect(filter);
+              filter.connect(gainNode);
+              gainNode.connect(ctx.destination);
+
+              osc1.start();
+              osc2.start();
+
+              window.__splice_voices[note] = {{ osc1: osc1, osc2: osc2, gain: gainNode }};
+            }} else {{
+              // Note Off
+              var voice = window.__splice_voices[note];
+              if (voice) {{
+                var curGain = Math.max(voice.gain.gain.value, 0.0001);
+                voice.gain.gain.cancelScheduledValues(ctx.currentTime);
+                voice.gain.gain.setValueAtTime(curGain, ctx.currentTime);
+                voice.gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.2);
+                setTimeout(function() {{
+                  try {{
+                    voice.osc1.stop();
+                    voice.osc2.stop();
+                  }} catch(e) {{}}
+                }}, 220);
+                delete window.__splice_voices[note];
+              }}
+            }}
+          }}
+        }} catch(e) {{
+          console.warn("[WebAudio TriggerKey Exception]", e);
+        }}
+      }}
+    }}
+
     // Load Preset Bridge Synchronization
     if (eventName === "loadPreset" || eventName === "loadPresetUuid") {{
       try {{
@@ -401,6 +491,15 @@ window.nativeBridge = {{
                         "message": f"Pack download initiated for {lib_id}"
                     }
 
+            # Handle triggerKey
+            if event == "triggerKey":
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(b'{"status":"ok"}')
+                return
+
             # Handle loadPreset
             if "loadpreset" in str(event).lower():
                 response_data = {
@@ -449,6 +548,7 @@ window.nativeBridge = {{
 
     def end_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
         super().end_headers()
 
     def log_message(self, format, *args):

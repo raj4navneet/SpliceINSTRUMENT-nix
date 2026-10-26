@@ -98,6 +98,9 @@ def get_preset_installation_manifest(build_id, preset_ids, token=None):
             with urllib.request.urlopen(req2, timeout=20) as resp2:
                 return json.loads(resp2.read().decode("utf-8"))
         err_msg = e.read().decode("utf-8", errors="ignore")
+        if e.code == 403:
+            sys.stderr.write(f"[Downloader] Splice subscription or preset entitlement required (HTTP 403): {err_msg}\n")
+            raise RuntimeError(f"Splice subscription required (HTTP 403): {err_msg}")
         sys.stderr.write(f"[Downloader] HTTP error fetching manifest ({e.code}): {err_msg}\n")
         raise RuntimeError(f"HTTP {e.code}: {err_msg}")
     except Exception as e:
@@ -372,11 +375,13 @@ def execute_download(sound_content_id, library_content_id, token=None):
         return {"status": "completed", "soundContentId": sound_content_id, "libraryContentId": library_content_id}
 
     except Exception as e:
-        sys.stderr.write(f"[Downloader] Error executing download: {e}\n")
+        err_str = str(e)
+        user_err = "Active Splice subscription required (HTTP 403)" if "HTTP 403" in err_str else err_str
+        sys.stderr.write(f"[Downloader] Error executing download: {user_err}\n")
         with _downloads_lock:
             ACTIVE_DOWNLOADS[task_key]["status"] = "failed"
-            ACTIVE_DOWNLOADS[task_key]["error"] = str(e)
-            ACTIVE_DOWNLOADS[task_key]["currentFile"] = f"Failed: {e}"
+            ACTIVE_DOWNLOADS[task_key]["error"] = user_err
+            ACTIVE_DOWNLOADS[task_key]["currentFile"] = f"Failed: {user_err}"
         raise
 
 
@@ -471,11 +476,13 @@ def execute_pack_download(library_content_id, token=None):
 
         return {"status": "completed", "libraryContentId": library_content_id, "presetCount": len(preset_ids)}
     except Exception as e:
-        sys.stderr.write(f"[Downloader] Error executing pack download: {e}\n")
+        err_str = str(e)
+        user_err = "Active Splice subscription required (HTTP 403)" if "HTTP 403" in err_str else err_str
+        sys.stderr.write(f"[Downloader] Error executing pack download: {user_err}\n")
         with _downloads_lock:
             ACTIVE_DOWNLOADS[task_key]["status"] = "failed"
-            ACTIVE_DOWNLOADS[task_key]["error"] = str(e)
-            ACTIVE_DOWNLOADS[task_key]["currentFile"] = f"Failed: {e}"
+            ACTIVE_DOWNLOADS[task_key]["error"] = user_err
+            ACTIVE_DOWNLOADS[task_key]["currentFile"] = f"Failed: {user_err}"
         raise
 
 
